@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import apiService from './services';
 import Container from './components/Container';
 import Searchbar from './components/Searchbar';

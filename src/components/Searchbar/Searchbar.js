@@ -18,7 +18,7 @@ function Searchbar({ onHandleSubmit }) {
 
   return (
     <header className={s.header}>
-      <form className={s.form} onSubmit={onHandleSubmit}>
+      <form className={s.form} onSubmit={onSubmit}>
         <button type="submit" className={s.btn}>
           <span className={s.label}>Search</span>
         </button>
