@@ -1,6 +1,5 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import apiService from './services';
 import Container from './components/Container';
 import Searchbar from './components/Searchbar';
@@ -10,127 +9,88 @@ import LoaderComponent from './components/LoaderComponent';
 import Modal from './components/Modal';
 import ErrorView from './components/ErrorView';
 
-class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    largeImageURL: '',
-    page: 1,
-    error: null,
-    isLoading: false,
-    showModal: false,
-  };
+function App() {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.query !== this.state.query) {
-      this.setState({ images: [], page: 1, error: null });
-    }
-  }
-
-  searchImages = async () => {
-    const { query, page } = this.state;
-
-    if (query.trim() === '') {
-      return toast.info('Please enter a value for search images!');
-    }
-
-    this.toggleLoader();
-
-    try {
-      const request = await apiService(query, page);
-      this.setState(({ images, page }) => ({
-        images: [...images, ...request],
-        page: page + 1,
-      }));
-      if (request.length === 0) {
-        this.setState({ error: `No results were found for ${query}!` });
+  useEffect(() => {
+    if (!query) return;
+    const fetchImages = async () => {
+      try {
+        const request = await apiService(query, page);
+        if (request.length === 0) {
+          return setError(`No results were found for ${query}!`);
+        }
+        setImages(prevImages => [...prevImages, ...request]);
+      } catch (error) {
+        setError('Something went wrong. Try again.');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      this.setState({ error: 'Something went wrong. Try again.' });
-    } finally {
-      this.toggleLoader();
-    }
+    };
+
+    fetchImages();
+  }, [page, query]);
+
+  const searchImages = newSearch => {
+    setQuery(newSearch);
+    setImages([]);
+    setPage(1);
+    setError(null);
+    setIsLoading(true);
   };
 
-  handleChange = e => {
-    this.setState({ query: e.target.value });
+  const onLoadMore = () => {
+    setIsLoading(true);
+    setPage(prevPage => prevPage + 1);
+    scrollPage();
   };
 
-  handleSubmit = e => {
-    e.preventDefault();
-    this.searchImages();
+  const onOpenModal = e => {
+    setLargeImageURL(e.target.dataset.source);
+    toggleModal();
   };
 
-  onLoadMore = () => {
-    this.searchImages();
-    this.scrollPage();
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  onOpenModal = e => {
-    this.setState({ largeImageURL: e.target.dataset.source });
-    this.toggleModal();
-  };
-
-  toggleLoader = () => {
-    this.setState(({ isLoading }) => ({
-      isLoading: !isLoading,
-    }));
-  };
-
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
-  };
-
-  scrollPage = () => {
+  const scrollPage = () => {
     setTimeout(() => {
       window.scrollBy({
         top: document.documentElement.clientHeight - 160,
         behavior: 'smooth',
       });
-    }, 1000);
+    }, 800);
   };
 
-  render() {
-    const {
-      query,
-      images,
-      largeImageURL,
-      isLoading,
-      showModal,
-      error,
-    } = this.state;
-    return (
-      <Container>
-        <Searchbar
-          onHandleSubmit={this.handleSubmit}
-          onSearchQueryChange={this.handleChange}
-          value={query}
-        />
+  return (
+    <Container>
+      <Searchbar onHandleSubmit={searchImages} />
 
-        {error && <ErrorView texterror={error} />}
+      {error && <ErrorView texterror={error} />}
 
-        {images.length > 0 && !error && (
-          <ImageGallery images={images} onOpenModal={this.onOpenModal} />
-        )}
+      {images.length > 0 && !error && (
+        <ImageGallery images={images} onOpenModal={onOpenModal} />
+      )}
 
-        {isLoading && <LoaderComponent />}
+      {isLoading && <LoaderComponent />}
 
-        {!isLoading && images.length >= 12 && !error && (
-          <Button onLoadMore={this.onLoadMore} />
-        )}
+      {!isLoading && images.length >= 12 && !error && (
+        <Button onLoadMore={onLoadMore} />
+      )}
 
-        {showModal && (
-          <Modal
-            onToggleModal={this.toggleModal}
-            largeImageURL={largeImageURL}
-          />
-        )}
-        <ToastContainer autoClose={3700} />
-      </Container>
-    );
-  }
+      {showModal && (
+        <Modal onToggleModal={toggleModal} largeImageURL={largeImageURL} />
+      )}
+      <ToastContainer autoClose={3700} />
+    </Container>
+  );
 }
 
 export default App;
